@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Webcam Chat</title>
+  </head>
+  <body>
+    <div id="localVideoContainer"></div>
+    <div id="remoteVideoContainer"></div>
+    <button id="startButton">Start</button>
+    <button id="callButton">Call</button>
+    <button id="hangupButton">Hang Up</button>
+    <input
+      type="text"
+      id="callToUsernameInput"
+      placeholder="Call To (Username)"
+    />
+    <br />
+    <input type="text" id="serverInput" placeholder="Server (IP:Port)" />
+    <br />
+    <input type="text" id="usernameInput" placeholder="Username" />
+    <br />
+    <script>
+      const localVideo = document.createElement('video');
+      localVideo.autoplay = true;
+      localVideo.muted = true;
+      localVideo.playsInline = true;
+      document.getElementById('localVideoContainer').appendChild(localVideo);
+
+      const remoteVideo = document.createElement('video');
+      remoteVideo.autoplay = true;
+      remoteVideo.playsInline = true;
+      document.getElementById('remoteVideoContainer').appendChild(remoteVideo);
+
+      const startButton = document.getElementById('startButton');
+      const callButton = document.getElementById('callButton');
+      const hangupButton = document.getElementById('hangupButton');
+      const callToUsernameInput = document.getElementById('callToUsernameInput');
+      const serverInput = document.getElementById('serverInput');
+      const usernameInput = document.getElementById('usernameInput');
+
+      callButton.disabled = true;
+      hangupButton.disabled = true;
+      startButton.onclick = start;
+      callButton.onclick = call;
+      hangupButton.onclick = hangup;
+
+      let startTime;
+      const localVideoStream = new MediaStream();
+      let pc1;
+      let pc2;
+      const offerOptions = {
+        offerToReceiveAudio: 1,
+        offerToReceiveVideo: 1
+      };
+
+      function getName(pc) {
+        return (pc === pc1) ? 'pc1' : 'pc2';
+      }
+
+      function getOtherPc(pc) {
+        return (pc === pc1) ? pc2 : pc1;
+      }
+
+      async function start() {
+        console.log('Requesting local stream');
+        startButton.disabled = true;
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({audio: true, video: true});
+          console.log('Received local stream');
+          localVideo.srcObject = stream;
+          localVideoStream = stream;
+          callButton.disabled = false;
+        } catch (e) {
+          console.log('getUserMedia() error: ', e);
+        }
+      }
+
+      function getSelectedSdpSemantics() {
+        const sdpSemanticsSelect = document.querySelector('.sdpSemantics');
+        const sdpSemantics = sdpSem
+            pc1.createOffer(offerOptions).then(
+              function(offer) {
+                console.log('Offer from pc1\n', offer.sdp);
+                console.log('pc1 setLocalDescription start');
+                pc1.setLocalDescription(offer).then(
+                  function() {
+                    console.log('pc1 setLocalDescription complete');
+                    console.log('pc2 setRemoteDescription start');
+                    pc2.setRemoteDescription(offer).then(
+                      function() {
+                        console.log('pc2 setRemoteDescription complete');
+                        console.log('pc2 createAnswer start');
+                        pc2.createAnswer().then(
+                          function(answer) {
+                            console.log('Answer from pc2:\n', answer.sdp);
+                            console.log('pc2 setLocalDescription start');
+                            pc2.setLocalDescription(answer).then(
+                              function() {
+                                console.log('pc2 setLocalDescription complete');
+                                console.log('pc1 setRemoteDescription start');
+                                pc1.setRemoteDescription(answer).then(
+                                  function() {
+                                    console.log('pc1 setRemoteDescription complete');
+                                  },
+                                  onSetSessionDescriptionError
+                                );
+                              },
+                              onSetSessionDescriptionError
+                            );
+                          },
+                          onCreateSessionDescriptionError
+                        );
+                      },
+                      onSetSessionDescriptionError
+                    );
+                  },
+                  onSetSessionDescriptionError
+                );
+              },
+              onCreateSessionDescriptionError
+            );
+            break;
+        }
+      }
+    </script>
+  </body>
+</html>
